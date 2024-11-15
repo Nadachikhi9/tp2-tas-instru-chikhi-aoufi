@@ -1,0 +1,102 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import lfilter, dlti, dimpulse
+
+# Paramètres de l'échantillonnage et du circuit RLC
+Te = 100e-6  # Période d'échantillonnage
+L = 1  # Inductance (H)
+C = 1e-6  # Capacité (F)
+R = 1e3  # Résistance (Ω)
+fe = 1 / Te  # Fréquence d'échantillonnage
+t = np.arange(0, 500 * Te, Te)  # Intervalle de temps
+x = np.ones(len(t))  # Signal d'entrée (échelon unitaire)
+
+# Coefficients pour la méthode bilinéaire
+A = 4 * L * C + (2 * R * C * Te) + Te**2
+B = -8 * L * C + (2 * Te**2)
+C1 = 4 * L * C - (2 * R * C * Te) + Te**2
+
+N = [Te**2, 2 * Te**2, Te**2]  # Numérateur (méthode bilinéaire)
+D = [A, B, C1]  # Dénominateur (méthode bilinéaire)
+
+# Coefficients pour la méthode de la dérivée
+N1 = [Te**2, 0, 0]  # Numérateur (méthode dérivée)
+D1 = [
+    (L * C) + (R * C * Te) + Te**2,
+    -((2 * L * C) + (R * C * Te)),
+    (L * C)
+]  # Dénominateur (méthode dérivée)
+
+# Figure 1 : Réponse impulsionnelle
+plt.figure(1)
+
+# Méthode bilinéaire
+system_bilinear = dlti(N, D)
+t_imp_bilinear, imp_response_bilinear = dimpulse(system_bilinear, n=50)
+imp_response_bilinear = np.squeeze(imp_response_bilinear)
+
+# Méthode de la dérivée
+system_derivative = dlti(N1, D1)
+t_imp_derivative, imp_response_derivative = dimpulse(system_derivative, n=50)
+imp_response_derivative = np.squeeze(imp_response_derivative)
+
+plt.stem(t_imp_bilinear, imp_response_bilinear, linefmt='red', markerfmt='ro', basefmt=" ", label='Bilin.')
+plt.stem(t_imp_derivative, imp_response_derivative, linefmt='green', markerfmt='go', basefmt=" ", label='Derivée')
+
+plt.title('Réponse impulsionnelle : Méthodes (Bilinéaire) et (Dérivée)')
+plt.xlabel('Échantillons')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid()
+
+# Figure 2 : Réponse indicielle
+y_bilinear = lfilter(N, D, x)  # Réponse indicielle (méthode bilinéaire)
+y_derivative = lfilter(N1, D1, x)  # Réponse indicielle (méthode dérivée)
+
+plt.figure(2)
+plt.plot(t, y_bilinear, 'red', label='Bilinéaire')
+plt.plot(t, y_derivative, 'green', label='Dérivée')
+plt.title('Réponse indicielle : Méthodes (Bilinéaire) et (Dérivée)')
+plt.xlabel('Temps (s)')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid()
+
+# Fonction pour tracer les pôles et zéros
+def zplane(b, a):
+    """
+    Tracer les pôles et zéros d'une fonction de transfert dans le plan Z.
+    """
+    from numpy import roots
+
+    zeros = roots(b)
+    poles = roots(a)
+
+    plt.scatter(zeros.real, zeros.imag, s=50, label='Zéros', marker='o', facecolors='none', edgecolors='blue')
+    plt.scatter(poles.real, poles.imag, s=50, label='Pôles', marker='x', color='red')
+
+    # Cercle unité
+    theta = np.linspace(0, 2 * np.pi, 100)
+    plt.plot(np.cos(theta), np.sin(theta), 'k--')
+
+    plt.axvline(0, color='black', lw=1)
+    plt.axhline(0, color='black', lw=1)
+    plt.title('Plan Z [Im, Re]')
+    plt.xlabel('Partie Réelle')
+    plt.ylabel('Partie Imaginaire')
+    plt.legend()
+    plt.grid()
+    plt.axis('equal')
+
+# Figure 3 : Pôles et zéros pour la méthode bilinéaire
+plt.figure(3)
+zplane(N, D)
+plt.title('Le cercle de plan Z [Im,Re] (Bilinéaire)')
+
+# Figure 4 : Pôles et zéros pour la méthode dérivée
+plt.figure(4)
+zplane(N1, D1)
+plt.title('Le cercle de plan Z [Im,Re] (Dérivée)')
+
+# Afficher toutes les figures
+plt.show()
