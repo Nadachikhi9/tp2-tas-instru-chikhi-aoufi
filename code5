@@ -1,0 +1,59 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import lfilter, freqz
+
+# Paramètres du circuit RLC
+Te = 100e-6  # Période d'échantillonnage
+L = 1  # Inductance
+C = 1e-6  # Capacité
+R = 1e3  # Résistance
+fe = 1 / Te  # Fréquence d'échantillonnage
+t = np.arange(0, 500 * Te, Te)  # Intervalle de temps
+
+# Signal d'entrée
+x = (2/1000) * np.cos(200 * np.pi * t) + \
+    (3/1000) * np.cos(2000 * np.pi * t) + \
+    (4/1000) * np.cos(4000 * np.pi * t) + \
+    (5/1000) * np.cos(6000 * np.pi * t)
+
+# Coefficients du dénominateur de la fonction de transfert (méthode bilinéaire)
+A = 4 * L * C + (2 * R * C * Te) + Te**2
+B = -8 * L * C + (2 * Te**2)
+C1 = 4 * L * C - (2 * R * C * Te) + Te**2
+
+# N et D de la méthode bilinéaire
+N = [Te**2, 2 * Te**2, Te**2]  # Numérateur
+D = [A, B, C1]  # Dénominateur
+
+# N1 et D1 de la méthode de dérivée
+N1 = [Te**2, 0, 0]  # Numérateur
+D1 = [(L * C) + (R * C * Te) + Te**2,
+      -((2 * L * C) + (R * C * Te)),
+      (L * C)]  # Dénominateur
+
+# Filtrage du signal x avec la méthode bilinéaire
+y = lfilter(N, D, x)  # Filtrage avec méthode bilinéaire
+y1 = lfilter(N1, D1, x)  # Filtrage avec méthode de dérivée
+
+# Analyse fréquentielle des signaux
+H, f = freqz(N, D, worN=250, fs=fe)
+H1, f1 = freqz(N1, D1, worN=250, fs=fe)
+H2, F1 = freqz(x, 1, worN=len(t), fs=fe)
+H3, F2 = freqz(y, 1, worN=len(t), fs=fe)
+H4, F3 = freqz(y1, 1, worN=len(t), fs=fe)
+
+# Filtrage du signal x(t) avec le filtre RII (méthode bilinéaire)
+plt.figure(1)
+
+# Tracé du spectre du signal x(t) avant filtrage (méthode bilinéaire)
+plt.subplot(2, 1, 1)
+plt.plot(f, np.abs(H), 'red', label='Filtre Bilinéaire')  # Utiliser np.abs() pour éviter la partie imaginaire
+plt.plot(F1, np.abs(H2), 'black', label='Signal Original')
+plt.title('Spectre du signal x(t) avant filtrage (méthode bilinéaire)')
+plt.xlabel('Fréquence (Hz)')
+plt.ylabel('Gain')
+plt.legend()
+plt.grid()
+
+plt.tight_layout()
+plt.show()
