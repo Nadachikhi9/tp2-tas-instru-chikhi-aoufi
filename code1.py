@@ -1,69 +1,86 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import lfilter, freqz, impz, zplane
+from scipy.signal import lfilter, freqz, dlti, dimpulse
 
-# Définition de la période T et de la fréquence d'échantillonnage Fe
-T = 100e-6  # Période d'échantillonnage en secondes (100 microsecondes)
-Fe = 1 / T  # Fréquence d'échantillonnage en Hz
 
-# Définition des coefficients du filtre RII
-A = [0.090909]               # Coefficient du numérateur (filtre RII)
-B = [1, -0.90909]           # Coefficients du dénominateur (filtre RII)
+# Custom zplane function
+def zplane(b, a):
+    from numpy import roots
 
-# Définition de l'intervalle de temps
-Te = T                        # Période d'échantillonnage
-t = np.arange(0, 200 * Te, Te)  # Intervalle du temps (de 0 à 200ms)
-x = np.ones(len(t))          # Entrée du filtre (Échelon Unitaire)
+    zeros = roots(b)  # Calculate zeros
+    poles = roots(a)  # Calculate poles
 
-# Affichage de la réponse impulsionnelle du filtre
-plt.figure(1)                # Créer une nouvelle figure pour la réponse impulsionnelle
-impulse_response = impz(A, B)
-plt.plot(impulse_response[0], impulse_response[1])  # Tracer la réponse impulsionnelle
-plt.title('La Réponse Impulsionnelle')
-plt.xlabel('Échantillons')
+    plt.figure()
+    plt.scatter(zeros.real, zeros.imag, s=50, label='Zeros', marker='o', facecolors='none', edgecolors='blue')
+    plt.scatter(poles.real, poles.imag, s=50, label='Poles', marker='x', color='red')
+
+    theta = np.linspace(0, 2 * np.pi, 100)
+    plt.plot(np.cos(theta), np.sin(theta), 'k--')  # Unit circle
+
+    plt.axvline(0, color='black', lw=1)
+    plt.axhline(0, color='black', lw=1)
+    plt.title('Poles and Zeros')
+    plt.xlabel('Real')
+    plt.ylabel('Imaginary')
+    plt.legend()
+    plt.grid()
+    plt.axis('equal')
+    plt.show()
+
+    return zeros, poles
+
+
+# Coefficients
+A = [0.090909]
+B = [1, -0.90909]
+
+# Sampling
+T = 100e-6
+Fe = 1 / T
+Te = T
+t = np.arange(0, 200 * Te, Te)
+x = np.ones(len(t))
+
+# Impulse Response
+system = dlti(A, B)
+t_imp, imp_response = dimpulse(system, n=200)
+imp_response = np.squeeze(imp_response)
+
+plt.figure(1)
+plt.stem(t_imp, imp_response, use_line_collection=True)
+plt.title('Impulse Response')
+plt.xlabel('Samples')
 plt.ylabel('Amplitude')
 plt.grid()
 
-# Affichage de la réponse fréquentielle du filtre
-plt.figure(2)                # Créer une nouvelle figure pour la réponse fréquentielle
-w, h = freqz(A, B, worN=512) # Calcul de la réponse fréquentielle
+# Frequency Response
+w, h = freqz(A, B, worN=512)
+
+plt.figure(2)
 plt.subplot(2, 1, 1)
-plt.plot(w / np.pi * Fe / 2, 20 * np.log10(abs(h)))  # Tracer le gain en dB
-plt.title('La Réponse Fréquentielle (Gain en dB & Phase)')
-plt.xlabel('Fréquence (Hz)')
+plt.plot(w / np.pi * Fe / 2, 20 * np.log10(abs(h)))
+plt.title('Frequency Response (Gain and Phase)')
+plt.xlabel('Frequency (Hz)')
 plt.ylabel('Gain (dB)')
 plt.grid()
 
 plt.subplot(2, 1, 2)
-plt.plot(w / np.pi * Fe / 2, np.angle(h))  # Tracer la phase
-plt_ylabel('Phase (radians)')
-plt.xlabel('Fréquence (Hz)')
+plt.plot(w / np.pi * Fe / 2, np.angle(h))
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Phase (radians)')
 plt.grid()
 
-# Calcul et affichage de la réponse fréquentielle
-plt.figure(3)                # Créer une nouvelle figure pour la magnitude de la réponse
-plt.plot(w / np.pi * Fe / 2, abs(h))  # Tracer la magnitude de la réponse fréquentielle
-plt.title('Le Gabarit')
-plt.xlabel('Fréquence (Hz)')
+# Filter Response
+y = lfilter(A, B, x)
+
+plt.figure(3)
+plt.plot(t, y)
+plt.title('Step Response')
+plt.xlabel('Time (s)')
 plt.ylabel('Amplitude')
 plt.grid()
 
-# Filtrage du signal x à partir de la fonction de transfert
-y = lfilter(A, B, x)       # Filtrer le signal x à l'aide du filtre
+# Poles and Zeros
+zeros, poles = zplane(A, B)
 
-# Affichage de la réponse indicielle
-plt.figure(4)                # Créer une nouvelle figure
-plt.plot(t, y)              # Tracer la réponse indicielle
-plt.title('La Réponse Indicielle')
-plt.xlabel('Temps (s)')     # Étiquetage de l'axe des x
-plt.ylabel('Amplitude')      # Étiquetage de l'axe des y
-plt.grid()
-
-# Visualisation des pôles et zéros du filtre
-plt.figure(5)                # Créer une nouvelle figure pour la représentation des pôles et zéros
-plt.subplot(1, 1, 1)  
-z, p, k = zplane(A, B)      # Tracer le diagramme des pôles et zéros (l'utilisation de zplane nécessite une fonction personnalisée)
-plt.title('Le Cercle de Plan Z [Im, Re]')
-plt.grid()
-
-plt.show()                  # Afficher toutes les figures
+plt.show()
