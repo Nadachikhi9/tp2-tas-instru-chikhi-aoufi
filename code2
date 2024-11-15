@@ -1,0 +1,94 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import freqz, lfilter, dlti, dimpulse
+
+# Paramètres du filtre et de l'échantillonnage
+Te = 1e-4  # Période d'échantillonnage
+fe = 1 / Te  # Fréquence d'échantillonnage
+A = [0.047619, 0.047619]  # Numérateur
+B = [1, -0.904761]  # Dénominateur
+
+# Intervalle de temps et signal d'entrée
+t = np.arange(0, 200 * Te, Te)  # Intervalle de temps
+x = np.ones(len(t))  # Signal d'entrée (échelon unitaire)
+
+# Figure 1 : Réponse impulsionnelle
+plt.figure(1)
+system = dlti(A, B)  # Représentation du système en temps discret
+t_imp, imp_response = dimpulse(system, n=len(t))
+imp_response = np.squeeze(imp_response)
+
+plt.stem(t_imp, imp_response, use_line_collection=True)
+plt.title('La Réponse Impulsionnelle')
+plt.xlabel('Temps (échantillons)')
+plt.ylabel('Amplitude')
+plt.grid()
+
+# Figure 2 : Réponse fréquentielle (Gain et Phase)
+plt.figure(2)
+w, h = freqz(A, B, worN=512)
+plt.subplot(2, 1, 1)
+plt.plot(w * fe / (2 * np.pi), 20 * np.log10(abs(h)))  # Gain en dB
+plt.title('La Réponse Fréquentielle (Gain en dB & Phase)')
+plt.xlabel('Fréquence (Hz)')
+plt.ylabel('Gain (dB)')
+plt.grid()
+
+plt.subplot(2, 1, 2)
+plt.plot(w * fe / (2 * np.pi), np.angle(h))  # Phase
+plt.xlabel('Fréquence (Hz)')
+plt.ylabel('Phase (radians)')
+plt.grid()
+
+# Figure 3 : Gabarit (Magnitude de la réponse)
+plt.figure(3)
+H1, f1 = freqz(A, B, worN=200, fs=fe)
+plt.plot(f1, abs(H1))
+plt.title('Le Gabarit')
+plt.xlabel('Fréquence (Hz)')
+plt.ylabel('Amplitude')
+plt.grid()
+
+# Filtrage du signal d'entrée
+y1 = lfilter(A, B, x)
+
+# Figure 4 : Réponse indicielle
+plt.figure(4)
+plt.plot(t, y1)
+plt.title('La Réponse Indicielle')
+plt.xlabel('Temps (s)')
+plt.ylabel('Amplitude')
+plt.grid()
+
+# Figure 5 : Plan Z (Pôles et Zéros)
+def zplane(b, a):
+    """
+    Tracer les pôles et zéros d'une fonction de transfert dans le plan Z.
+    """
+    from numpy import roots
+
+    zeros = roots(b)
+    poles = roots(a)
+
+    plt.figure()
+    plt.scatter(zeros.real, zeros.imag, s=50, label='Zéros', marker='o', facecolors='none', edgecolors='blue')
+    plt.scatter(poles.real, poles.imag, s=50, label='Pôles', marker='x', color='red')
+
+    # Cercle unité
+    theta = np.linspace(0, 2 * np.pi, 100)
+    plt.plot(np.cos(theta), np.sin(theta), 'k--')
+
+    plt.axvline(0, color='black', lw=1)
+    plt.axhline(0, color='black', lw=1)
+    plt.title('Le cercle de plan Z [Im, Re]')
+    plt.xlabel('Partie Réelle')
+    plt.ylabel('Partie Imaginaire')
+    plt.legend()
+    plt.grid()
+    plt.axis('equal')
+    plt.show()
+
+# Tracer les pôles et zéros
+zplane(A, B)
+
+plt.show()
