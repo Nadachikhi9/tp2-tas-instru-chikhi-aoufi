@@ -1,0 +1,47 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import freqz, lfilter
+
+# Paramètres du filtre et de l'échantillonnage
+Te = 1e-4  # Période d'échantillonnage
+fe = 1 / Te  # Fréquence d'échantillonnage
+
+# Coefficients des fonctions de transfert
+A = [0.090909, 0]  # Numérateur (Méthode de la dérivée)
+B = [1, -0.90909]  # Dénominateur (Méthode de la dérivée)
+C = [0.047619, 0.047619]  # Numérateur (Méthode bilinéaire)
+D = [1, -0.904761]  # Dénominateur (Méthode bilinéaire)
+
+# Intervalle de temps et signal d'entrée
+t = np.arange(0, 200 * Te, Te)  # Intervalle de temps
+x = np.ones(len(t))  # Signal d'entrée (échelon unitaire)
+
+# Figure 1 : Gabarits des réponses fréquentielles
+plt.figure(1)
+f, H = freqz(A, B, worN=250, fs=fe)  # Réponse fréquentielle (Méthode de la dérivée)
+f1, H1 = freqz(C, D, worN=250, fs=fe)  # Réponse fréquentielle (Méthode bilinéaire)
+
+plt.plot(f, abs(H), 'green', label='Méthode de la Dérivée')  # Gabarit (Méthode de la dérivée)
+plt.plot(f1, abs(H1), 'blue', label='Méthode Bilinéaire')  # Gabarit (Méthode bilinéaire)
+plt.title('Les Gabarits')
+plt.xlabel('Fréquence (Hz)')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid()
+
+# Filtrage des signaux
+y = lfilter(A, B, x)  # Réponse indicielle (Méthode de la dérivée)
+y1 = lfilter(C, D, x)  # Réponse indicielle (Méthode bilinéaire)
+
+# Figure 2 : Réponses indicielle
+plt.figure(2)
+plt.plot(t, y, 'green', label='Méthode de la Dérivée')  # Réponse indicielle (Méthode de la dérivée)
+plt.plot(t, y1, 'blue', label='Méthode Bilinéaire')  # Réponse indicielle (Méthode bilinéaire)
+plt.title('Les Réponses Indicielle')
+plt.xlabel('Temps (s)')
+plt.ylabel('Amplitude')
+plt.legend()
+plt.grid()
+
+# Afficher les graphiques
+plt.show()
